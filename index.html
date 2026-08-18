@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>이등변삼각형의 각도 맞히기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gaegu:wght@700&display=swap" rel="stylesheet">
+
+<!-- Firebase (닮음퀴즈·인생다시뽑기와 같은 mathmatics-3160f 프로젝트, Realtime Database 사용) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+  :root{
+    --ink:#4a3f6b; --ink2:#8a80ab;
+    --pink:#ff9bb3; --pink-d:#e8788f;
+    --yellow:#ffd465; --yellow-d:#e0b23f;
+    --mint:#6fe3c0; --mint-d:#45c4a0;
+    --sky:#86c8ff; --sky-d:#5aa5e6;
+    --purple:#c3b1fa; --purple-d:#9d86e0;
+    --card:#ffffff; --line:#eae4f7;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    background:
+      radial-gradient(700px 420px at 12% 6%, #fff2c9 0%, rgba(255,242,201,0) 60%),
+      radial-gradient(700px 500px at 92% 22%, #ffd9e4 0%, rgba(255,217,228,0) 62%),
+      linear-gradient(180deg,#eaf6ff 0%, #f6f0ff 55%, #fff6ec 100%);
+    color:var(--ink);
+    font-family:'Jua','Gaegu',"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+    display:flex; flex-direction:column; align-items:center;
+    overflow:hidden; letter-spacing:.2px;
+  }
+  .wrap{width:100%; max-width:520px; height:100dvh; display:flex; flex-direction:column; padding:10px 14px 14px;}
+  .screen{display:none; flex:1; min-height:0; flex-direction:column;}
+  .screen.on{display:flex;}
+
+  /* ===== 귀여운 버튼 ===== */
+  .btn{
+    border:none; border-radius:22px; cursor:pointer; font-family:inherit; color:#fff;
+    padding:14px 16px; font-size:19px; position:relative; top:0;
+    box-shadow:0 6px 0 var(--sh), 0 10px 18px rgba(90,70,140,.16);
+    transition:top .06s, box-shadow .06s;
+  }
+  .btn:active{top:5px; box-shadow:0 1px 0 var(--sh), 0 3px 8px rgba(90,70,140,.16);}
+  .btn:disabled{opacity:.45; box-shadow:0 6px 0 var(--sh); cursor:default;}
+  .b-pink{background:var(--pink); --sh:var(--pink-d);}
+  .b-yellow{background:var(--yellow); --sh:var(--yellow-d); color:#6b5100;}
+  .b-mint{background:var(--mint); --sh:var(--mint-d); color:#0c5645;}
+  .b-sky{background:var(--sky); --sh:var(--sky-d); color:#10416b;}
+  .b-purple{background:var(--purple); --sh:var(--purple-d);}
+  .b-gray{background:#e6e1f2; --sh:#cfc7e4; color:var(--ink2);}
+
+  /* ===== 시작 화면 ===== */
+  .homescroll{flex:1; min-height:0; overflow:auto; display:flex; flex-direction:column;}
+  .title{
+    font-size:clamp(26px,7.6vw,36px); text-align:center; margin:12px 0 2px; line-height:1.25;
+    color:#5b4a8a; text-shadow:2px 3px 0 #fff, 4px 6px 0 rgba(160,140,220,.18);
+  }
+  .mascot{display:block; margin:2px auto 10px; width:min(150px,38vw); height:auto;}
+  .toprow{display:flex; justify-content:flex-end; padding:2px 2px 0;}
+  .plainlink{
+    background:none; border:none; color:#a99fc4; font-family:inherit; font-size:14px;
+    padding:6px 8px; cursor:pointer;
+  }
+  .plainlink:active{color:var(--ink2);}
+  .menu{display:flex; flex-direction:column; gap:13px; width:100%; max-width:340px; margin:0 auto 6px;}
+  .menu .btn{display:flex; align-items:center; gap:10px; justify-content:flex-start; text-align:left;}
+  .menu .btn .em{font-size:24px; line-height:1;}
+  .menu .btn .tx{flex:1; min-width:0;}
+  .menu .btn .tx b{display:block; font-size:19px; font-weight:400; white-space:nowrap;}
+  .menu .btn .tx span{display:block; font-size:12.5px; opacity:.8; white-space:nowrap;}
+  .badge{
+    background:#fff; color:var(--pink-d); border-radius:999px; padding:2px 9px;
+    font-size:13px; min-width:26px; text-align:center;
+  }
+  .foot{text-align:center; color:#b3a9cc; font-size:12px; padding:8px 0 2px;}
+
+  /* ===== 난이도 선택 ===== */
+  .sub{text-align:center; font-size:15px; color:var(--ink2); margin:0 0 14px;}
+  .center{flex:1; display:flex; flex-direction:column; justify-content:center; gap:12px; max-width:340px; margin:0 auto; width:100%;}
+
+  /* ===== 게임 화면 ===== */
+  .hud{display:flex; align-items:center; gap:7px; margin-bottom:8px;}
+  .chip{
+    background:#fff; border:3px solid #ece5fb; border-radius:18px; padding:5px 8px;
+    text-align:center; flex:1; min-width:0; box-shadow:0 3px 0 #e6ddf7;
+  }
+  .chip .k{font-size:11px; color:var(--ink2);}
+  .chip .v{font-size:19px; line-height:1.15;}
+  .v.score{color:#e8788f;} .v.combo{color:#e0952f;} .v.time{color:#33a98a;}
+  .v.time.low{color:#ef6a7f;}
+  .mini{
+    border:none; background:#fff; border:3px solid #ece5fb; color:var(--ink2);
+    border-radius:16px; padding:7px 10px; font-size:13px; font-family:inherit; cursor:pointer;
+    box-shadow:0 3px 0 #e6ddf7; white-space:nowrap;
+  }
+  .timebar{height:12px; background:#efe9fb; border-radius:99px; overflow:hidden; margin-bottom:8px; border:2px solid #fff;}
+  .timebar i{display:block; height:100%; width:100%; background:linear-gradient(90deg,#7ae7c7,#86c8ff); transition:width .12s linear;}
+  .timebar.low i{background:linear-gradient(90deg,#ff9bb3,#ffd465);}
+  .stage{text-align:center; font-size:13px; color:var(--ink2); margin-bottom:5px; white-space:nowrap;}
+  .stage b{color:#7a5fd0;}
+
+  .board{
+    flex:1; min-height:0; background:#fff; border:4px solid #fff;
+    border-radius:26px; box-shadow:0 6px 0 #e9e1f8, 0 14px 26px rgba(120,100,170,.12);
+    display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; margin-bottom:9px;
+  }
+  .board svg{width:100%; height:100%; display:block;}
+  .ask{position:absolute; top:9px; left:0; right:0; text-align:center; font-size:15px; color:var(--ink2);}
+  .ask b{color:#e0952f; font-size:19px;}
+
+  .flash{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:76px; opacity:0; pointer-events:none;}
+  .flash.show{animation:pop .7s ease-out;}
+  @keyframes pop{0%{opacity:0;transform:scale(.4) rotate(-14deg);}25%{opacity:1;transform:scale(1.14) rotate(6deg);}70%{opacity:1;transform:scale(1) rotate(0);}100%{opacity:0;transform:scale(1);}}
+  .gain{position:absolute; bottom:12px; left:0; right:0; text-align:center; font-size:23px; opacity:0;}
+  .gain.show{animation:rise .9s ease-out;}
+  @keyframes rise{0%{opacity:0;transform:translateY(10px);}20%{opacity:1;}100%{opacity:0;transform:translateY(-20px);}}
+
+  .answer{
+    display:flex; align-items:center; justify-content:center; gap:5px;
+    background:#fff; border:4px dashed #dccffa; border-radius:22px;
+    height:56px; margin-bottom:9px; font-size:30px; color:var(--ink);
+  }
+  .answer.filled{border-style:solid; border-color:var(--purple);}
+  .answer .ph{color:#b8aed4; font-size:16px;}
+  .answer .deg{font-size:23px; color:var(--ink2);}
+  .pad{display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
+  .key{
+    border:none; background:#fff; color:var(--ink); border-radius:20px;
+    font-size:25px; font-family:inherit; padding:0; height:clamp(46px,7.4dvh,60px); cursor:pointer;
+    box-shadow:0 5px 0 #e4dcf5, 0 8px 14px rgba(120,100,170,.10); position:relative; top:0;
+  }
+  .key:active{top:4px; box-shadow:0 1px 0 #e4dcf5;}
+  .key.del{font-size:17px; color:var(--ink2);}
+  .key.ok{background:var(--mint); color:#0c5645; font-size:20px; box-shadow:0 5px 0 var(--mint-d);}
+  .key.ok:active{box-shadow:0 1px 0 var(--mint-d);}
+  .key.ok:disabled{opacity:.45;}
+  .key.ok.next{background:var(--sky); color:#10416b; box-shadow:0 5px 0 var(--sky-d);}
+
+  .explain{
+    background:#fffdf5; border:3px solid #ffe6a8; border-radius:22px;
+    padding:12px 15px 12px; font-size:17px; line-height:1.7;
+    box-shadow:0 5px 0 #f6e3b4; text-align:center;
+  }
+  .explain .h{margin-bottom:3px; font-size:18px;}
+  .explain .h.ok{color:#2f9e7e;} .explain .h.no{color:#e8788f;}
+  .explain code{background:#fff3d0; padding:2px 8px; border-radius:9px; color:#a06a00; font-family:inherit;}
+  .explain .nextbtn{width:100%; margin-top:9px; padding:11px; font-size:17px;}
+
+  /* ===== 결과 / 랭킹 ===== */
+  .bigscore{text-align:center;}
+  .bigscore .k{color:var(--ink2); font-size:15px;}
+  .bigscore .v{font-size:56px; color:#e8788f; line-height:1.15;}
+  .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:9px;}
+  .cell{background:#fff; border-radius:20px; padding:11px 6px; text-align:center; box-shadow:0 4px 0 #e9e1f8;}
+  .cell .k{font-size:12px; color:var(--ink2);}
+  .cell .v{font-size:21px;}
+  .listbox{background:#fff; border-radius:22px; padding:12px 14px; box-shadow:0 5px 0 #e9e1f8; overflow:auto;}
+  .listbox h4{margin:0 0 8px; font-size:14px; color:var(--ink2); font-weight:400;}
+  .row{display:flex; align-items:center; gap:9px; padding:7px 4px; border-top:2px dotted #efe9fb;}
+  .row:first-of-type{border-top:none;}
+  .row .no{width:30px; font-size:18px; text-align:center;}
+  .row .nm{flex:1; font-size:16px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .row .nm small{color:var(--ink2); font-size:12px;}
+  .row .sc{font-size:18px; color:#e8788f;}
+  .row.me{background:#fff5f8; border-radius:14px;}
+  .btns{display:flex; gap:9px;}
+  .btns .btn{flex:1;}
+
+  /* ===== 비밀번호 모달 ===== */
+  .modal{
+    position:fixed; inset:0; background:rgba(74,63,107,.45); display:none;
+    align-items:center; justify-content:center; padding:20px; z-index:50;
+  }
+  .modal.on{display:flex;}
+  .modal .box{
+    background:#fff; border-radius:26px; padding:22px 20px; width:100%; max-width:320px; text-align:center;
+    box-shadow:0 10px 0 #ddd3f2;
+  }
+  .modal h3{margin:0 0 4px; font-size:20px;}
+  .modal p{margin:0 0 14px; font-size:13px; color:var(--ink2);}
+  .modal input{
+    width:100%; padding:13px; border-radius:18px; border:3px solid #e6ddf7; text-align:center;
+    font-size:24px; letter-spacing:6px; font-family:inherit; outline:none; color:var(--ink);
+  }
+  .modal input:focus{border-color:var(--purple);}
+  .modal .err{color:#e8788f; font-size:13px; height:18px; margin:6px 0 2px;}
+  .modal .btns{margin-top:6px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============ 시작 화면 ============ -->
+  <section class="screen on" id="scr-home">
+   <div class="homescroll">
+    <div class="toprow"><button class="plainlink" id="go-rank">🏆 랭킹</button></div>
+    <h1 class="title">이등변삼각형의<br>각도 맞히기</h1>
+
+    <svg class="mascot" viewBox="0 0 200 170" id="mascot">
+      <ellipse cx="100" cy="156" rx="62" ry="9" fill="rgba(120,100,170,.13)"/>
+      <polygon points="100,20 168,146 32,146" fill="#a5e6ff" stroke="#5aa5e6" stroke-width="7" stroke-linejoin="round"/>
+      <line x1="56.3" y1="77.8" x2="75.7" y2="88.2" stroke="#fff" stroke-width="6.5" stroke-linecap="round"/>
+      <line x1="124.3" y1="88.2" x2="143.7" y2="77.8" stroke="#fff" stroke-width="6.5" stroke-linecap="round"/>
+      <ellipse cx="82" cy="112" rx="9" ry="11" fill="#3d3a5c"/>
+      <ellipse cx="118" cy="112" rx="9" ry="11" fill="#3d3a5c"/>
+      <circle cx="85" cy="108" r="3.2" fill="#fff"/><circle cx="121" cy="108" r="3.2" fill="#fff"/>
+      <ellipse cx="66" cy="128" rx="9" ry="6" fill="#ffb3c6" opacity=".85"/>
+      <ellipse cx="134" cy="128" rx="9" ry="6" fill="#ffb3c6" opacity=".85"/>
+      <path d="M91 129 q9 9 18 0" stroke="#3d3a5c" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+    </svg>
+
+    <div class="menu">
+      <button class="btn b-mint" id="go-practice">
+        <span class="em">🌱</span>
+        <span class="tx"><b>연습 모드</b><span>난이도 하 · 중 · 상 골라서 천천히</span></span>
+      </button>
+      <button class="btn b-pink" id="go-real">
+        <span class="em">🔥</span>
+        <span class="tx"><b>실전 모드</b><span>1분 안에 점수 최대로 올리기</span></span>
+      </button>
+      <button class="btn b-yellow" id="go-review">
+        <span class="em">📒</span>
+        <span class="tx"><b>오답 모드</b><span>틀렸던 문제만 다시 풀기</span></span>
+        <span class="badge" id="wrong-badge">0</span>
+      </button>
+    </div>
+
+    <div class="foot">답은 각도 표시(°) 없이 숫자만 입력해요</div>
+   </div>
+  </section>
+
+  <!-- ============ 연습 난이도 선택 ============ -->
+  <section class="screen" id="scr-level">
+    <div class="center">
+      <h2 class="title" style="font-size:26px;margin-bottom:2px">연습 난이도 고르기</h2>
+      <p class="sub">숫자가 쉬울수록 암산이 편해요</p>
+      <button class="btn b-mint lv" data-lv="1">🍀 난이도 하 &nbsp;·&nbsp; 10의 배수</button>
+      <button class="btn b-sky lv" data-lv="2">🐳 난이도 중 &nbsp;·&nbsp; 5의 배수</button>
+      <button class="btn b-pink lv" data-lv="3">🌶️ 난이도 상 &nbsp;·&nbsp; 1의 배수</button>
+      <button class="btn b-gray" id="lv-back">← 처음으로</button>
+    </div>
+  </section>
+
+  <!-- ============ 게임 화면 ============ -->
+  <section class="screen" id="scr-play">
+    <div class="hud">
+      <button class="mini" id="btn-home">🏠</button>
+      <div class="chip"><div class="k" id="k-score">점수</div><div class="v score" id="ui-score">0</div></div>
+      <div class="chip"><div class="k">연속</div><div class="v combo" id="ui-combo">0</div></div>
+      <div class="chip"><div class="k">시간</div><div class="v time" id="ui-time">60</div></div>
+    </div>
+    <div class="timebar" id="ui-bar"><i></i></div>
+    <div class="stage" id="ui-stage"></div>
+
+    <div class="board" id="board">
+      <div class="ask" id="ui-ask"></div>
+      <svg id="svg" viewBox="0 0 420 330" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="flash" id="ui-flash"></div>
+      <div class="gain" id="ui-gain"></div>
+    </div>
+
+    <div class="explain" id="ui-explain" style="display:none"></div>
+
+    <div class="answer" id="ui-answer"><span class="ph">답을 입력하세요</span></div>
+
+    <div class="pad" id="ui-pad">
+      <button class="key" data-k="1">1</button>
+      <button class="key" data-k="2">2</button>
+      <button class="key" data-k="3">3</button>
+      <button class="key" data-k="4">4</button>
+      <button class="key" data-k="5">5</button>
+      <button class="key" data-k="6">6</button>
+      <button class="key" data-k="7">7</button>
+      <button class="key" data-k="8">8</button>
+      <button class="key" data-k="9">9</button>
+      <button class="key del" data-k="del">지우기</button>
+      <button class="key" data-k="0">0</button>
+      <button class="key ok" data-k="ok" id="key-ok">확인</button>
+    </div>
+  </section>
+
+  <!-- ============ 결과 ============ -->
+  <section class="screen" id="scr-end">
+    <div class="center" style="max-width:420px">
+      <div class="bigscore">
+        <div class="k" id="ui-endname">최종 점수</div>
+        <div class="v" id="ui-endscore">0</div>
+      </div>
+      <div class="grid">
+        <div class="cell"><div class="k">맞힌 개수</div><div class="v" id="ui-endright">0</div></div>
+        <div class="cell"><div class="k">정확도</div><div class="v" id="ui-endacc">0%</div></div>
+        <div class="cell"><div class="k">최고 연속</div><div class="v" id="ui-endcombo">0</div></div>
+      </div>
+      <div class="listbox" style="max-height:26dvh">
+        <h4 id="ui-endnote">🏆 오늘의 순위</h4>
+        <div id="ui-ranklist"></div>
+      </div>
+      <div class="btns">
+        <button class="btn b-pink" id="btn-again">다시 도전</button>
+        <button class="btn b-gray" id="btn-home2">처음으로</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 랭킹 ============ -->
+  <section class="screen" id="scr-rank">
+    <div class="center" style="max-width:420px; justify-content:flex-start; padding-top:14px">
+      <h2 class="title" style="font-size:26px">🏆 랭킹</h2>
+      <div class="listbox" style="max-height:56dvh">
+        <h4>실전 모드 기록 (점수 높은 순)</h4>
+        <div id="ui-fullrank"></div>
+      </div>
+      <div class="btns">
+        <button class="btn b-gray" id="rank-clear" style="flex:0 0 40%">기록 지우기</button>
+        <button class="btn b-purple" id="rank-back">처음으로</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- ============ 실전 모드 이름 입력 ============ -->
+<div class="modal" id="modal-name">
+  <div class="box">
+    <h3>🔥 실전 모드</h3>
+    <p>랭킹에 올릴 이름을 적어 주세요</p>
+    <input id="name-input" type="text" maxlength="12" placeholder="예: 2-3 김승기" autocomplete="off"
+           style="letter-spacing:0; font-size:18px">
+    <div class="err" id="name-err"></div>
+    <div class="btns">
+      <button class="btn b-gray" id="name-cancel">취소</button>
+      <button class="btn b-pink" id="name-ok">시작!</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 비밀번호 ============ -->
+<div class="modal" id="modal-pw">
+  <div class="box">
+    <h3 id="pw-title">🔒 비밀번호</h3>
+    <p id="pw-desc">선생님만 볼 수 있어요</p>
+    <input id="pw-input" type="password" inputmode="numeric" maxlength="8" placeholder="•••••">
+    <div class="err" id="pw-err"></div>
+    <div class="btns">
+      <button class="btn b-gray" id="pw-cancel">취소</button>
+      <button class="btn b-purple" id="pw-ok">확인</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   이등변삼각형의 각도 맞히기
+   - 두 밑각이 같다 + 세 각의 합 180° 를 이용한 암산 게임
+   - 연습(하/중/상) · 실전(1분) · 오답 모드 · 랭킹(비밀번호)
+   - 파이어베이스 랭킹 연동 지점은 파일 하단 [FIREBASE] 참고
+   ========================================================= */
+
+const $ = s => document.querySelector(s);
+const R = (a,b) => a + Math.floor(Math.random()*(b-a+1));
+const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+
+const CFG = {
+  TIME_LIMIT: 60,     // 실전 제한 시간(초)
+  BASE: 1000,         // 정답 기본 점수
+  SPEED_MAX: 500,     // 속도 보너스 최대
+  SPEED_SEC: 10,      // 이 시간이 지나면 속도 보너스 0
+  COMBO_STEP: 200,    // 연속 정답 1회당 보너스
+  COMBO_CAP: 5,       // 연속 보너스 상한(최대 +1000)
+  PENALTY: 500,       // 오답 감점 (0점 밑으로는 안 내려감)
+  RANK_KEEP: 50,      // 랭킹 보관 개수
+  WRONG_KEEP: 40,     // 오답노트 보관 개수
+  TEACHER_PW: '12345', // 랭킹 보기 비밀번호
+  CLEAR_PW: '54321'    // 기록 지우기 비밀번호
+};
+
+/* ---------- 저장소 (localStorage 사용 불가 환경이면 메모리로 대체) ---------- */
+const Store = (()=>{
+  let mem = {};
+  let ok = true;
+  try { localStorage.setItem('__t','1'); localStorage.removeItem('__t'); } catch(e){ ok = false; }
+  return {
+    get(k, def){
+      try { const v = ok ? localStorage.getItem(k) : mem[k]; return v ? JSON.parse(v) : def; }
+      catch(e){ return def; }
+    },
+    set(k, v){
+      const s = JSON.stringify(v);
+      try { if (ok) localStorage.setItem(k, s); else mem[k] = s; } catch(e){ mem[k] = s; }
+    }
+  };
+})();
+let RANKS  = Store.get('iso_ranks', []);
+let WRONGS = Store.get('iso_wrongs', []);
+
+/* =========================================================
+   1. 문제 생성
+   ========================================================= */
+// kind: 'apex2base' 꼭지각→밑각 / 'base2apex' 밑각→꼭지각 / 'base2base' 밑각→반대쪽 밑각
+// level: 1 = 10의 배수, 2 = 5의 배수, 3 = 1의 배수
+
+function levelOfReal(correct){          // 실전 모드는 맞힌 개수에 따라 자동 상승
+  if (correct < 5)  return 1;
+  if (correct < 12) return 2;
+  return 3;
+}
+
+function makeProblem(level, prevKey){
+  let p, tries = 0;
+  do { p = genOne(level); tries++; } while (p.key === prevKey && tries < 12);
+  p.level = level;
+  return p;
+}
+
+function genOne(level){
+  let kind, apex, base;
+  kind = pick(['apex2base','apex2base','base2apex','base2apex','base2base']);
+
+  if (level === 1){                                    // 10의 배수
+    if (kind === 'apex2base'){
+      apex = pick([20,40,60,80,100,120,140]);          // 답 80,70,60,50,40,30,20
+      base = (180-apex)/2;
+    } else {
+      base = pick([20,30,40,50,60,70,80]);             // 답 140,120,…,20
+      apex = 180-2*base;
+    }
+  } else if (level === 2){                             // 5의 배수
+    if (kind === 'apex2base'){
+      apex = pick([30,50,70,90,110,130,150]);          // 답 75,65,55,45,35,25,15
+      base = (180-apex)/2;
+    } else {
+      base = pick([25,35,45,55,65,75]);                // 답 130,110,90,70,50,30
+      apex = 180-2*base;
+    }
+  } else {                                             // 1의 배수 (5의 배수는 제외해 더 까다롭게)
+    if (kind === 'apex2base'){
+      do { apex = R(10,70)*2; } while (apex % 5 === 0); // 20°~140°, 답은 항상 정수
+      base = (180-apex)/2;
+    } else {
+      do { base = R(21,79); } while (base % 5 === 0);   // 꼭지각 22°~138°
+      apex = 180-2*base;
+    }
+  }
+
+  // vertex 0 = 꼭지각, 1 = 왼쪽 밑각, 2 = 오른쪽 밑각
+  let givenAt, askAt, given, answer;
+  const L = Math.random() < .5 ? 1 : 2, Rv = (L===1?2:1);
+  if (kind === 'apex2base'){        givenAt = 0;            askAt = pick([1,2]); given = apex; answer = base; }
+  else if (kind === 'base2apex'){   givenAt = pick([1,2]);  askAt = 0;           given = base; answer = apex; }
+  else {                            givenAt = L;            askAt = Rv;          given = base; answer = base; }
+
+  return { kind, apex, base, given, answer, givenAt, askAt, rot: nextRotation(),
+           key: kind+':'+given+':'+askAt };
+}
+
+/* 회전 방향이 한쪽으로 몰리지 않도록, 8방향을 섞어 하나씩 꺼내 쓰고(비복원 추출)
+   다 쓰면 다시 섞는다. 여기에 ±22° 흔들림을 더해 매번 다른 각도로 나온다. */
+let rotBag = [];
+function nextRotation(){
+  if (!rotBag.length){
+    rotBag = [0,45,90,135,180,225,270,315];
+    for (let i=rotBag.length-1; i>0; i--){            // 셔플
+      const j = Math.floor(Math.random()*(i+1));
+      [rotBag[i], rotBag[j]] = [rotBag[j], rotBag[i]];
+    }
+  }
+  return (rotBag.pop() + R(-22,22) + 360) % 360;
+}
+
+/* =========================================================
+   2. 삼각형 그리기 (교과서식 등변 빗금 표시)
+   ========================================================= */
+let VW = 420, VH = 330;
+const PAD = 16, FS = 22, ARC_MAX = 36, LBL_GAP = 20;
+
+function syncViewBox(){
+  const b = $('#board').getBoundingClientRect();
+  if (b.width < 40 || b.height < 40) return;
+  VW = Math.round(b.width); VH = Math.round(b.height);
+  $('#svg').setAttribute('viewBox', `0 0 ${VW} ${VH}`);
+}
+
+function unitShape(apexDeg, rotDeg){
+  const A = apexDeg*Math.PI/180, half = A/2, rot = rotDeg*Math.PI/180;
+  const pts = [ {x:0,y:0}, {x:-Math.sin(half), y:Math.cos(half)}, {x:Math.sin(half), y:Math.cos(half)} ];
+  const cx=(pts[0].x+pts[1].x+pts[2].x)/3, cy=(pts[0].y+pts[1].y+pts[2].y)/3;
+  return pts.map(p=>{ const x=p.x-cx, y=p.y-cy;
+    return { x:x*Math.cos(rot)-y*Math.sin(rot), y:x*Math.sin(rot)+y*Math.cos(rot) }; });
+}
+const sub=(a,b)=>({x:a.x-b.x,y:a.y-b.y});
+const len=v=>Math.hypot(v.x,v.y);
+const norm=v=>{const l=len(v)||1;return {x:v.x/l,y:v.y/l};};
+const textW = s => s.length*FS*0.62 + 10;
+
+function vertexGeo(P){
+  return [0,1,2].map(i=>{
+    const a=P[i], b=P[(i+1)%3], c=P[(i+2)%3];
+    const v1=norm(sub(b,a)), v2=norm(sub(c,a));
+    const bis=norm({x:v1.x+v2.x, y:v1.y+v2.y});
+    const r=Math.min(ARC_MAX, Math.min(len(sub(b,a)),len(sub(c,a)))*0.30);
+    return {v1,v2,bis,r};
+  });
+}
+function measure(u, s, labels){
+  const P = u.map(p=>({x:p.x*s, y:p.y*s}));
+  let minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9;
+  const add=(x,y)=>{minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);};
+  P.forEach(p=>add(p.x,p.y));
+  const geo = vertexGeo(P);
+  labels.forEach(l=>{
+    const g=geo[l.i];
+    const cx=P[l.i].x+g.bis.x*(g.r+LBL_GAP+FS*0.35), cy=P[l.i].y+g.bis.y*(g.r+LBL_GAP+FS*0.35);
+    const w=textW(l.text)/2, h=FS*0.75;
+    add(cx-w,cy-h); add(cx+w,cy+h);
+  });
+  add(minX-11,minY-11); add(maxX+11,maxY+11);
+  return {minX,minY,maxX,maxY,w:maxX-minX,h:maxY-minY,P,geo};
+}
+
+let lastDraw = null;
+function drawTriangle(prob, opts){
+  opts = opts || {};
+  lastDraw = {prob, opts};
+  syncViewBox();
+  const topPad = 30, botPad = PAD + (opts.bottomPad||0);
+  const u = unitShape(prob.apex, prob.rot);
+  const labels = [
+    {i:prob.givenAt, text: prob.given+'°', type:'given'},
+    {i:prob.askAt,   text: opts.revealAnswer ? prob.answer+'°' : '?', type:'ask'}
+  ];
+
+  const availW = VW-2*PAD, availH = Math.max(120, VH-botPad-topPad);
+  let lo=20, hi=1200;
+  for(let k=0;k<38;k++){
+    const m=(lo+hi)/2, bb=measure(u,m,labels);
+    if (bb.w<=availW && bb.h<=availH) lo=m; else hi=m;
+  }
+  const bb = measure(u, lo, labels);
+  // 라벨이 커서 영역보다 커지는 극단적인 경우엔 화면 전체 기준으로 중앙 정렬 (잘림 방지)
+  const fitW = bb.w<=availW, fitH = bb.h<=availH;
+  const ox = fitW ? PAD + (availW-bb.w)/2 - bb.minX : (VW-bb.w)/2 - bb.minX;
+  const oy = fitH ? topPad + (availH-bb.h)/2 - bb.minY : (VH-bb.h)/2 - bb.minY;
+  const P = bb.P.map(p=>({x:p.x+ox, y:p.y+oy}));
+  const geo = vertexGeo(P);
+
+  let svg = '';
+  svg += `<polygon points="${P.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ')}"
+           fill="#d8f0ff" stroke="#5aa5e6" stroke-width="6" stroke-linejoin="round"/>`;
+
+  // 길이가 같은 변 표시: 꼭지각에서 뻗은 두 변에 빗금 1개씩 (교과서 표현)
+  [[0,1],[0,2]].forEach(([a,b])=>{
+    const m={x:(P[a].x+P[b].x)/2, y:(P[a].y+P[b].y)/2};
+    const d=norm(sub(P[b],P[a])), n={x:-d.y,y:d.x}, t=11;
+    svg += `<line x1="${(m.x-n.x*t).toFixed(1)}" y1="${(m.y-n.y*t).toFixed(1)}"
+             x2="${(m.x+n.x*t).toFixed(1)}" y2="${(m.y+n.y*t).toFixed(1)}"
+             stroke="#3d3a5c" stroke-width="5" stroke-linecap="round"/>`;
+  });
+
+  labels.forEach(l=>{
+    const g=geo[l.i], V=P[l.i];
+    const col = l.type==='given' ? '#4a3f6b' : (opts.revealAnswer ? '#2f9e7e' : '#e07b1f');
+    const p1={x:V.x+g.v1.x*g.r, y:V.y+g.v1.y*g.r}, p2={x:V.x+g.v2.x*g.r, y:V.y+g.v2.y*g.r};
+    const sweep = (g.v1.x*g.v2.y - g.v1.y*g.v2.x) > 0 ? 1 : 0;
+    if (l.type==='ask'){
+      svg += `<path d="M ${V.x.toFixed(1)} ${V.y.toFixed(1)} L ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}
+               A ${g.r.toFixed(1)} ${g.r.toFixed(1)} 0 0 ${sweep} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)} Z"
+               fill="${opts.revealAnswer?'rgba(111,227,192,.55)':'rgba(255,212,101,.65)'}" stroke="none"/>`;
+    }
+    svg += `<path d="M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} A ${g.r.toFixed(1)} ${g.r.toFixed(1)} 0 0 ${sweep} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}"
+             fill="none" stroke="${col}" stroke-width="${l.type==='ask'?4:3}" stroke-linecap="round"/>`;
+    const lx=V.x+g.bis.x*(g.r+LBL_GAP+FS*0.35), ly=V.y+g.bis.y*(g.r+LBL_GAP+FS*0.35);
+    svg += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" fill="${col}"
+             font-size="${l.type==='ask'&&l.text==='?'?FS*1.35:FS}"
+             text-anchor="middle" dominant-baseline="central"
+             stroke="#fff" stroke-width="6" stroke-linejoin="round" paint-order="stroke"
+             font-family="inherit">${l.text}</text>`;
+  });
+
+  P.forEach(p=>{ svg += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4.5" fill="#5aa5e6" stroke="#fff" stroke-width="2.5"/>`; });
+  $('#svg').innerHTML = svg;
+}
+
+/* =========================================================
+   3. 게임 진행
+   ========================================================= */
+const S = {
+  mode:'real',      // 'practice' | 'real' | 'review'
+  level:1, name:'', score:0, combo:0, bestCombo:0,
+  correct:0, wrong:0, timeLeft:CFG.TIME_LIMIT,
+  prob:null, qStart:0, input:'', locked:false, timer:null, prevKey:'',
+  reviewList:[], reviewIdx:0
+};
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  $('#'+id).classList.add('on');
+}
+function startGame(mode, level){
+  S.mode = mode;
+  S.level = level || 1;
+  if (mode !== 'real') S.name = S.name || '연습';
+  S.score=0; S.combo=0; S.bestCombo=0; S.correct=0; S.wrong=0;
+  S.timeLeft = CFG.TIME_LIMIT; S.input=''; S.locked=false; S.prevKey='';
+  hideExplain();
+
+  if (mode === 'review'){
+    S.reviewList = WRONGS.slice();
+    S.reviewIdx = 0;
+    if (!S.reviewList.length){ show('scr-home'); return; }
+  }
+  $('#k-score').textContent = mode==='real' ? '점수' : '맞힘';
+  show('scr-play');
+  updateHUD();
+  nextProblem();
+  clearInterval(S.timer); lastTs = 0;
+  if (mode === 'real') S.timer = setInterval(tick, 100);
+}
+
+let lastTs = 0;
+function tick(){
+  const now = performance.now();
+  if (!lastTs) lastTs = now;
+  S.timeLeft -= (now-lastTs)/1000; lastTs = now;
+  if (S.timeLeft <= 0){ S.timeLeft = 0; endGame(); }
+  updateTime();
+}
+function updateTime(){
+  const t = Math.max(0, S.timeLeft);
+  $('#ui-time').textContent = S.mode==='real' ? Math.ceil(t) : '∞';
+  $('#ui-time').classList.toggle('low', S.mode==='real' && t<=10);
+  const bar = $('#ui-bar');
+  bar.classList.toggle('low', S.mode==='real' && t<=10);
+  bar.firstElementChild.style.width = (S.mode==='real' ? (t/CFG.TIME_LIMIT*100) : 100) + '%';
+}
+function updateHUD(){
+  $('#ui-score').textContent = S.mode==='real' ? S.score.toLocaleString() : S.correct;
+  $('#ui-combo').textContent = S.combo;
+  updateTime();
+}
+
+function nextProblem(){
+  hideExplain();
+  if (S.mode === 'review'){
+    if (S.reviewIdx >= S.reviewList.length){ finishReview(); return; }
+    S.prob = Object.assign({}, S.reviewList[S.reviewIdx]);
+  } else {
+    const lv = S.mode==='real' ? levelOfReal(S.correct) : S.level;
+    S.prob = makeProblem(lv, S.prevKey);
+    S.prevKey = S.prob.key;
+  }
+  S.input=''; S.locked=false;
+  renderAnswer();
+  drawTriangle(S.prob, {});
+  const askName = S.prob.askAt === 0 ? '꼭지각' : '밑각';
+  $('#ui-ask').innerHTML = `<b>?</b> 는 몇 도일까요? <span style="opacity:.75">(${askName})</span>`;
+  $('#ui-stage').innerHTML = stageText();
+  S.qStart = performance.now();
+}
+function stageText(){
+  if (S.mode === 'review') return `📒 오답 다시 풀기 · <b>${S.reviewIdx+1} / ${S.reviewList.length}</b>`;
+  const lv = S.mode==='real' ? levelOfReal(S.correct) : S.level;
+  const nm = lv===1 ? '난이도 하 · 10의 배수' : lv===2 ? '난이도 중 · 5의 배수' : '난이도 상 · 1의 배수';
+  return (S.mode==='real' ? '🔥 실전 · ' : '🌱 연습 · ') + `<b>${nm}</b>`;
+}
+
+function renderAnswer(){
+  const el = $('#ui-answer'), ok = $('#key-ok');
+  if (!S.input){ el.className='answer'; el.innerHTML='<span class="ph">답을 입력하세요</span>'; }
+  else { el.className='answer filled'; el.innerHTML = S.input + '<span class="deg">°</span>'; }
+  if (S.locked && S.mode!=='real'){ ok.textContent='다음 ▶'; ok.classList.add('next'); ok.disabled=false; }
+  else { ok.textContent='확인'; ok.classList.remove('next'); ok.disabled = !S.input; }
+}
+
+function keyIn(k){
+  if (S.locked && S.mode!=='real'){ if (k==='ok') advance(); return; }
+  if (S.locked) return;
+  if (k==='del'){ S.input = S.input.slice(0,-1); renderAnswer(); return; }
+  if (k==='ok'){ submit(); return; }
+  if (S.input.length >= 3) return;
+  if (S.input==='' && k==='0') return;
+  S.input += k; renderAnswer();
+}
+function advance(){
+  if (S.mode==='review') S.reviewIdx++;
+  nextProblem();
+}
+
+function submit(){
+  if (S.locked || !S.input) return;
+  const val = parseInt(S.input,10);
+  const ok = (val === S.prob.answer);
+  const sec = (performance.now()-S.qStart)/1000;
+  S.locked = true;
+
+  let gain = 0;
+  if (ok){
+    S.correct++; S.combo++; S.bestCombo = Math.max(S.bestCombo,S.combo);
+    const speed = Math.round(Math.max(0, CFG.SPEED_MAX*(1-sec/CFG.SPEED_SEC))/10)*10;
+    gain = CFG.BASE + speed + Math.min(S.combo-1,CFG.COMBO_CAP)*CFG.COMBO_STEP;
+    S.score += gain;
+    if (S.mode==='review') removeWrong(S.prob);   // 복습 성공 → 오답노트에서 제거
+  } else {
+    S.wrong++; S.combo = 0;
+    gain = -Math.min(CFG.PENALTY, S.score);
+    S.score = Math.max(0, S.score-CFG.PENALTY);
+    if (S.mode!=='review') addWrong(S.prob);      // 오답노트에 저장
+  }
+  updateHUD();
+  flash(ok);
+
+  if (S.mode === 'real'){
+    showGain(gain);
+    drawTriangle(S.prob, {revealAnswer: !ok});
+    setTimeout(()=>{ if ($('#scr-play').classList.contains('on') && S.locked) nextProblem(); }, ok?400:950);
+  } else {
+    showExplain(ok);                       // 해설이 자판 자리를 대신 차지 → 도형이 가려지지 않음
+    drawTriangle(S.prob, {revealAnswer:true});
+    renderAnswer();
+  }
+}
+
+function flash(ok){
+  const f = $('#ui-flash');
+  f.textContent = ok ? pick(['🎉','⭐','👏','💯']) : '💧';
+  f.classList.remove('show'); void f.offsetWidth; f.classList.add('show');
+}
+function showGain(g){
+  const el = $('#ui-gain');
+  el.textContent = (g>=0?'+':'') + g.toLocaleString();
+  el.style.color = g>=0 ? '#2f9e7e' : '#e8788f';
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+}
+
+function showExplain(ok){
+  const p = S.prob;
+  let body;
+  if (p.kind === 'apex2base'){
+    body = `두 밑각의 크기가 같으니까<br><code>(180 − ${p.apex}) ÷ 2 = ${p.answer}</code>`;
+  } else if (p.kind === 'base2apex'){
+    body = `두 밑각이 각각 ${p.base}°니까<br><code>180 − ${p.base} − ${p.base} = ${p.answer}</code>`;
+  } else {
+    body = `이등변삼각형의 두 밑각은 크기가 같으니까<br><code>${p.answer}</code>`;
+  }
+  const el = $('#ui-explain');
+  el.innerHTML = `<div class="h ${ok?'ok':'no'}">${ok?'정답이에요! 🎉':'정답은 '+p.answer+'° 였어요'}</div>
+                  <div>${body}</div>
+                  <button class="btn b-sky nextbtn" id="btn-next">다음 문제 ▶</button>`;
+  el.style.display='block';
+  $('#ui-answer').style.display='none';
+  $('#ui-pad').style.display='none';
+  $('#btn-next').addEventListener('click', e=>{ e.stopPropagation(); advance(); });
+}
+function hideExplain(){
+  $('#ui-explain').style.display='none';
+  $('#ui-answer').style.display='';
+  $('#ui-pad').style.display='';
+}
+
+/* ---------- 오답노트 ---------- */
+function wkey(p){ return [p.kind,p.apex,p.base,p.givenAt,p.askAt].join('|'); }
+function addWrong(p){
+  const rec = {kind:p.kind, apex:p.apex, base:p.base, given:p.given, answer:p.answer,
+               givenAt:p.givenAt, askAt:p.askAt, rot:p.rot};
+  if (WRONGS.some(w=>wkey(w)===wkey(rec))) return;
+  WRONGS.unshift(rec);
+  if (WRONGS.length > CFG.WRONG_KEEP) WRONGS.length = CFG.WRONG_KEEP;
+  Store.set('iso_wrongs', WRONGS);
+  paintBadge();
+}
+function removeWrong(p){
+  const k = wkey(p);
+  WRONGS = WRONGS.filter(w=>wkey(w)!==k);
+  Store.set('iso_wrongs', WRONGS);
+  paintBadge();
+}
+function paintBadge(){
+  $('#wrong-badge').textContent = WRONGS.length;
+  $('#go-review').disabled = WRONGS.length === 0;
+}
+function finishReview(){
+  $('#ui-endname').textContent = '📒 오답 다시 풀기 끝!';
+  $('#ui-endscore').textContent = S.correct + ' / ' + S.reviewList.length;
+  $('#ui-endright').textContent = S.correct;
+  $('#ui-endacc').textContent = S.reviewList.length ? Math.round(S.correct/S.reviewList.length*100)+'%' : '0%';
+  $('#ui-endcombo').textContent = S.bestCombo;
+  $('#ui-endnote').textContent = '📒 남은 오답 ' + WRONGS.length + '문제';
+  $('#ui-ranklist').innerHTML = WRONGS.length
+      ? '<div style="font-size:15px;color:#8a80ab;padding:6px 2px">맞힌 문제는 오답노트에서 빠졌어요. 남은 문제도 도전해 볼까요?</div>'
+      : '<div style="font-size:16px;padding:6px 2px">오답을 모두 해결했어요! 🎊</div>';
+  show('scr-end');
+}
+
+/* ---------- 게임 종료 ---------- */
+function endGame(){
+  clearInterval(S.timer); S.timer=null; lastTs=0;
+  const total = S.correct + S.wrong;
+  $('#ui-endname').textContent = S.name + ' 님의 점수';
+  $('#ui-endscore').textContent = S.score.toLocaleString();
+  $('#ui-endright').textContent = S.correct;
+  $('#ui-endacc').textContent = total ? Math.round(S.correct/total*100)+'%' : '0%';
+  $('#ui-endcombo').textContent = S.bestCombo;
+  $('#ui-endnote').textContent = '🏆 오늘의 순위';
+
+  const rec = {name:S.name, score:S.score, correct:S.correct, t:Date.now()};
+  RANKS.push(rec);
+  RANKS.sort((a,b)=>b.score-a.score);
+  if (RANKS.length > CFG.RANK_KEEP) RANKS.length = CFG.RANK_KEEP;
+  Store.set('iso_ranks', RANKS);
+  submitScoreToServer(rec);                        // [FIREBASE] 연동 지점
+
+  $('#ui-ranklist').innerHTML = rankHTML(RANKS.slice(0,8), rec);
+  show('scr-end');
+}
+const MEDAL = ['🥇','🥈','🥉'];
+function rankHTML(list, me){
+  if (!list.length) return '<div style="font-size:15px;color:#8a80ab;padding:6px 2px">아직 기록이 없어요</div>';
+  return list.map((r,i)=>
+    `<div class="row ${r===me?'me':''}">
+       <div class="no">${MEDAL[i]||(i+1)}</div>
+       <div class="nm">${escapeHtml(r.name)} <small>· ${r.correct}문제</small></div>
+       <div class="sc">${r.score.toLocaleString()}</div>
+     </div>`).join('');
+}
+const escapeHtml = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* =========================================================
+   4. 이벤트
+   ========================================================= */
+$('#go-practice').addEventListener('click', ()=> show('scr-level'));
+$('#lv-back').addEventListener('click', ()=> show('scr-home'));
+document.querySelectorAll('.lv').forEach(b=>
+  b.addEventListener('click', ()=> startGame('practice', +b.dataset.lv)));
+$('#go-review').addEventListener('click', ()=> startGame('review'));
+
+/* ---------- 실전 모드: 시작할 때 이름 받기 ---------- */
+$('#go-real').addEventListener('click', ()=>{
+  $('#name-input').value = Store.get('iso_lastname','') || '';
+  $('#name-err').textContent = '';
+  $('#modal-name').classList.add('on');
+  setTimeout(()=>$('#name-input').focus(), 80);
+});
+$('#name-cancel').addEventListener('click', ()=> $('#modal-name').classList.remove('on'));
+$('#name-ok').addEventListener('click', startReal);
+$('#name-input').addEventListener('keydown', e=>{ if (e.key==='Enter') startReal(); });
+function startReal(){
+  const nm = ($('#name-input').value||'').trim();
+  if (!nm){ $('#name-err').textContent = '이름을 적어야 시작할 수 있어요'; return; }
+  Store.set('iso_lastname', nm);
+  S.name = nm;
+  $('#modal-name').classList.remove('on');
+  startGame('real');
+}
+
+$('#btn-home').addEventListener('click', ()=>{ clearInterval(S.timer); S.timer=null; lastTs=0; show('scr-home'); });
+$('#btn-home2').addEventListener('click', ()=> show('scr-home'));
+$('#btn-again').addEventListener('click', ()=> startGame(S.mode, S.level));
+
+document.querySelectorAll('.key').forEach(b=> b.addEventListener('click', ()=> keyIn(b.dataset.k)));
+
+document.addEventListener('keydown', e=>{
+  if (!$('#scr-play').classList.contains('on')) return;
+  if (e.key>='0' && e.key<='9') keyIn(e.key);
+  else if (e.key==='Backspace'){ e.preventDefault(); keyIn('del'); }
+  else if (e.key==='Enter'){ e.preventDefault(); keyIn('ok'); }
+});
+
+/* ---------- 랭킹 (비밀번호) / 기록 지우기 (비밀번호) ---------- */
+let pwMode = 'view';   // 'view' 랭킹 보기 | 'clear' 기록 지우기
+function askPw(mode){
+  pwMode = mode;
+  $('#pw-title').textContent = mode==='clear' ? '🗑️ 기록 지우기' : '🔒 비밀번호';
+  $('#pw-desc').textContent  = mode==='clear' ? '선생님만 지울 수 있어요' : '선생님만 볼 수 있어요';
+  $('#pw-input').value=''; $('#pw-err').textContent='';
+  $('#modal-pw').classList.add('on');
+  setTimeout(()=>$('#pw-input').focus(), 80);
+}
+$('#go-rank').addEventListener('click', ()=> askPw('view'));
+$('#pw-cancel').addEventListener('click', ()=> $('#modal-pw').classList.remove('on'));
+$('#pw-ok').addEventListener('click', tryPw);
+$('#pw-input').addEventListener('keydown', e=>{ if (e.key==='Enter') tryPw(); });
+function tryPw(){
+  const need = pwMode==='clear' ? CFG.CLEAR_PW : CFG.TEACHER_PW;
+  if ($('#pw-input').value === need){
+    $('#modal-pw').classList.remove('on');
+    if (pwMode==='clear') doClearRanks(); else openRank();
+  } else {
+    $('#pw-err').textContent = '비밀번호가 달라요';
+    $('#pw-input').value='';
+  }
+}
+function openRank(){
+  $('#ui-fullrank').innerHTML = rankHTML(RANKS, null);
+  show('scr-rank');
+}
+function doClearRanks(){
+  if (fbRef) fbRef.remove().catch(err=>console.warn('Firebase 삭제 실패', err));
+  RANKS = []; Store.set('iso_ranks', RANKS); openRank();
+}
+$('#rank-back').addEventListener('click', ()=> show('scr-home'));
+$('#rank-clear').addEventListener('click', ()=>{
+  if (!RANKS.length) return;
+  askPw('clear');
+});
+
+let rzT=null;
+window.addEventListener('resize', ()=>{
+  clearTimeout(rzT);
+  rzT = setTimeout(()=>{ if (lastDraw && $('#scr-play').classList.contains('on')) drawTriangle(lastDraw.prob, lastDraw.opts); }, 120);
+});
+
+/* =========================================================
+   [FIREBASE] 랭킹 연동 — mathmatics-3160f 프로젝트 (닮음퀴즈·인생다시뽑기와 공유)
+   Realtime Database, 노드명 'isoAngleRanking' (다른 게임 데이터와 분리)
+   ========================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyCVEx7H-unTZ8Il4_yTtNAJO0YbdrK4vss",
+  authDomain: "mathmatics-3160f.firebaseapp.com",
+  databaseURL: "https://mathmatics-3160f-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "mathmatics-3160f"
+};
+
+let fbRef = null, fbReady = false;
+
+function initFirebase(){
+  try{
+    if (typeof firebase === 'undefined') throw new Error('SDK 로드 실패');
+    firebase.initializeApp(firebaseConfig);
+    fbRef = firebase.database().ref('isoAngleRanking');
+    fbRef.on('value', snap=>{
+      const val = snap.val() || {};
+      RANKS = Object.entries(val).map(([id,r])=>({id, ...r}));
+      RANKS.sort((a,b)=>b.score-a.score);
+      fbReady = true;
+      if ($('#scr-rank').classList.contains('on')) openRank();   // 랭킹 화면이 열려 있으면 실시간 갱신
+    }, err=>{
+      console.warn('Firebase 읽기 실패, 로컬 저장으로 대체', err);
+    });
+  } catch(e){
+    console.warn('Firebase 연결 안 됨, 로컬 저장으로 대체', e);
+  }
+}
+
+function submitScoreToServer(rec){
+  if (fbRef && fbReady){
+    fbRef.push(rec).catch(err=>console.warn('Firebase 저장 실패, 로컬에만 보관', err));
+  }
+}
+
+/* 초기화 */
+initFirebase();
+paintBadge();
+updateTime();
+</script>
+</body>
+</html>
