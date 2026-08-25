@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="color-scheme" content="light">
 <title>이등변삼각형의 각도 맞히기</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -184,7 +185,8 @@
   .modal p{margin:0 0 14px; font-size:13px; color:var(--ink2);}
   .modal input{
     width:100%; padding:13px; border-radius:18px; border:3px solid #e6ddf7; text-align:center;
-    font-size:24px; letter-spacing:6px; font-family:inherit; outline:none; color:var(--ink);
+    font-size:24px; letter-spacing:6px; font-family:inherit; outline:none;
+    background:#fff; color:var(--ink); -webkit-text-fill-color:var(--ink); caret-color:var(--ink);
   }
   .modal input:focus{border-color:var(--purple);}
   .modal .err{color:#e8788f; font-size:13px; height:18px; margin:6px 0 2px;}
@@ -841,7 +843,7 @@ $('#go-real').addEventListener('click', ()=>{
   $('#name-input').value = Store.get('iso_lastname','') || '';
   $('#name-err').textContent = '';
   $('#modal-name').classList.add('on');
-  setTimeout(()=>$('#name-input').focus(), 80);
+  $('#name-input').focus();          // 클릭과 같은 틱에서 바로 포커스 (모바일 키보드가 안 뜨는 문제 방지)
 });
 $('#name-cancel').addEventListener('click', ()=> $('#modal-name').classList.remove('on'));
 $('#name-ok').addEventListener('click', startReal);
@@ -876,7 +878,7 @@ function askPw(mode){
   $('#pw-desc').textContent  = mode==='clear' ? '선생님만 지울 수 있어요' : '선생님만 볼 수 있어요';
   $('#pw-input').value=''; $('#pw-err').textContent='';
   $('#modal-pw').classList.add('on');
-  setTimeout(()=>$('#pw-input').focus(), 80);
+  $('#pw-input').focus();            // 클릭과 같은 틱에서 바로 포커스 (모바일 키보드가 안 뜨는 문제 방지)
 }
 $('#go-rank').addEventListener('click', ()=> askPw('view'));
 $('#pw-cancel').addEventListener('click', ()=> $('#modal-pw').classList.remove('on'));
