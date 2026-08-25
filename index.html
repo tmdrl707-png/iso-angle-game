@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
 <meta name="color-scheme" content="light">
 <title>이등변삼각형의 각도 맞히기</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -171,15 +171,21 @@
   .btns{display:flex; gap:9px;}
   .btns .btn{flex:1;}
 
-  /* ===== 비밀번호 모달 ===== */
+  /* ===== 비밀번호 모달 =====
+     키보드가 올라와도 입력칸이 가려지지 않도록:
+     - align-items:flex-start + box에 margin:auto → 공간이 넉넉하면 가운데, 좁으면 위부터
+     - overflow-y:auto → 좁아지면 스크롤 가능 (잘리지 않음)
+     - height/top은 visualViewport 기준으로 JS가 맞춰 줌 */
   .modal{
-    position:fixed; inset:0; background:rgba(74,63,107,.45); display:none;
-    align-items:center; justify-content:center; padding:20px; z-index:50;
+    position:fixed; left:0; top:0; width:100%; height:100%;
+    background:rgba(74,63,107,.45); display:none;
+    align-items:flex-start; justify-content:center; padding:14px; z-index:50;
+    overflow-y:auto; -webkit-overflow-scrolling:touch;
   }
   .modal.on{display:flex;}
   .modal .box{
-    background:#fff; border-radius:26px; padding:22px 20px; width:100%; max-width:320px; text-align:center;
-    box-shadow:0 10px 0 #ddd3f2;
+    background:#fff; border-radius:26px; padding:18px 18px; width:100%; max-width:320px; text-align:center;
+    box-shadow:0 10px 0 #ddd3f2; margin:auto;
   }
   .modal h3{margin:0 0 4px; font-size:20px;}
   .modal p{margin:0 0 14px; font-size:13px; color:var(--ink2);}
@@ -838,14 +844,46 @@ document.querySelectorAll('.lv').forEach(b=>
   b.addEventListener('click', ()=> startGame('practice', +b.dataset.lv)));
 $('#go-review').addEventListener('click', ()=> startGame('review'));
 
+/* ---------- 모달 열기 (모바일 키보드 대응) ----------
+   휴대폰에서 키보드가 올라오면 화면(보이는 영역)이 절반으로 줄어드는데,
+   position:fixed 창은 원래 화면 기준으로 가운데 있으려 해서 입력칸이 키보드 뒤로 숨는다.
+   visualViewport(실제로 보이는 영역) 크기에 맞춰 창 높이·위치를 다시 잡아 준다. */
+function syncModalViewport(){
+  const vv = window.visualViewport;
+  if (!vv) return;
+  document.querySelectorAll('.modal.on').forEach(m=>{
+    m.style.height = vv.height + 'px';
+    m.style.top    = vv.offsetTop + 'px';
+  });
+}
+if (window.visualViewport){
+  window.visualViewport.addEventListener('resize', syncModalViewport);
+  window.visualViewport.addEventListener('scroll', syncModalViewport);
+}
+function openModal(modalSel, inputSel){
+  $(modalSel).classList.add('on');
+  const inp = $(inputSel);
+  inp.focus();                                   // 클릭과 같은 틱에서 포커스 (키보드가 안 뜨는 문제 방지)
+  syncModalViewport();
+  // 키보드가 다 올라온 뒤 입력칸을 보이는 영역 안으로 끌어온다
+  [120, 350, 650].forEach(ms=> setTimeout(()=>{
+    syncModalViewport();
+    if ($(modalSel).classList.contains('on')) inp.scrollIntoView({block:'center'});
+  }, ms));
+}
+function closeModal(modalSel){
+  const m = $(modalSel);
+  m.classList.remove('on');
+  m.style.height = ''; m.style.top = '';
+}
+
 /* ---------- 실전 모드: 시작할 때 이름 받기 ---------- */
 $('#go-real').addEventListener('click', ()=>{
   $('#name-input').value = Store.get('iso_lastname','') || '';
   $('#name-err').textContent = '';
-  $('#modal-name').classList.add('on');
-  $('#name-input').focus();          // 클릭과 같은 틱에서 바로 포커스 (모바일 키보드가 안 뜨는 문제 방지)
+  openModal('#modal-name', '#name-input');
 });
-$('#name-cancel').addEventListener('click', ()=> $('#modal-name').classList.remove('on'));
+$('#name-cancel').addEventListener('click', ()=> closeModal('#modal-name'));
 $('#name-ok').addEventListener('click', startReal);
 $('#name-input').addEventListener('keydown', e=>{ if (e.key==='Enter') startReal(); });
 function startReal(){
@@ -853,7 +891,7 @@ function startReal(){
   if (!nm){ $('#name-err').textContent = '이름을 적어야 시작할 수 있어요'; return; }
   Store.set('iso_lastname', nm);
   S.name = nm;
-  $('#modal-name').classList.remove('on');
+  closeModal('#modal-name');
   startGame('real');
 }
 
@@ -877,17 +915,16 @@ function askPw(mode){
   $('#pw-title').textContent = mode==='clear' ? '🗑️ 기록 지우기' : '🔒 비밀번호';
   $('#pw-desc').textContent  = mode==='clear' ? '선생님만 지울 수 있어요' : '선생님만 볼 수 있어요';
   $('#pw-input').value=''; $('#pw-err').textContent='';
-  $('#modal-pw').classList.add('on');
-  $('#pw-input').focus();            // 클릭과 같은 틱에서 바로 포커스 (모바일 키보드가 안 뜨는 문제 방지)
+  openModal('#modal-pw', '#pw-input');
 }
 $('#go-rank').addEventListener('click', ()=> askPw('view'));
-$('#pw-cancel').addEventListener('click', ()=> $('#modal-pw').classList.remove('on'));
+$('#pw-cancel').addEventListener('click', ()=> closeModal('#modal-pw'));
 $('#pw-ok').addEventListener('click', tryPw);
 $('#pw-input').addEventListener('keydown', e=>{ if (e.key==='Enter') tryPw(); });
 function tryPw(){
   const need = pwMode==='clear' ? CFG.CLEAR_PW : CFG.TEACHER_PW;
   if ($('#pw-input').value === need){
-    $('#modal-pw').classList.remove('on');
+    closeModal('#modal-pw');
     if (pwMode==='clear') doClearRanks(); else openRank();
   } else {
     $('#pw-err').textContent = '비밀번호가 달라요';
